@@ -9,9 +9,12 @@ import h5py
 
 WIDTH = 42
 HEIGHT = 32
+EDGE_LEN = 15
 modelpath = 'models/'
-visiblepath = '111/'
-# all_path = '164030_all/'
+visiblepath = '164030_visible//'
+imagename = '164030'
+imagepath = '164030_all/'
+refdspath = 'refDS_label.h5'
 # all_list = os.listdir(all_path)
 # cover = len(visible_list)
 # coverrate = round(cover * 100 / len(all_list), 4)
@@ -118,6 +121,7 @@ def get_kernelmap(edge_len, zone_idx, height, width):
         temp = np.arange(sp_h * width + sp_w, sp_h * width + ep_w)
         kernel_map.append(list(temp))
         sp_h += 1
+    kernel_map = np.array(kernel_map)
     return kernel_map
 
 
@@ -136,19 +140,21 @@ def load_refdataset(filepath):
     return ds
 
 
-def update_visiblezones(kernelmap, y_map):
-    visible_zones = []
+def init_y_kernelmap(kernelmap, y_map):
+    h, w = np.shape(kernelmap)
+    y_kernelmap = np.zeros((h * w, 9))
     for i in kernelmap:
         if y_map[i][4] != 0:
-            visible_zones.append(i)
-    return visible_zones
+            row, col = np.where(kernelmap == i)
+            y_kernelmap[int(row) * w + int(col)] = y_map[i]
+    return y_kernelmap
 
-def create_y_kernelmap(kernelmap, y_map, ds, width):
+
+def build_y_kernelmap(kernelmap, y_map, ds, width):
     visible_zones = []
     empty_zones = []
-    w = len(kernelmap[0])
-    h = len(kernelmap)
-    y_kernelmap = np.zeros(h, w)
+    h, w = np.shape(kernelmap)
+    y_kernelmap = init_y_kernelmap(kernelmap, y_map)
     for i in kernelmap:
         if y_map[i][4] != 0:
             visible_zones.append(i)
@@ -157,15 +163,23 @@ def create_y_kernelmap(kernelmap, y_map, ds, width):
             empty_zones.append(i)
     search_zones = init_searchzones(empty_zones, visible_zones)
     while len(search_zones) != 0:
-        max_value, max_zone, max_neighbor = findzone(search_zones, visible_zones, width)
+        max_value, max_zone, max_neighbor = find_maxzone(search_zones, visible_zones, width)
         total_pred = 0.0
         for key in max_neighbor:
-            pred = y_map[max_neighbor[key]][key - 1]
+            row, col = np.where(kernelmap == max_neighbor[key])
+            pred = y_kernelmap[int(row) * w + int(col)][key - 1]
             total_pred += pred
         final_pred = total_pred / max_value
         min_idx = (np.abs(ds[:, 4] - final_pred)).argmin()
-        y_map[max_zone] = ds[min_idx]
+        row, col = np.where(kernelmap == max_zone)
+        y_kernelmap[int(row) * w + int(col)] = ds[min_idx]
         update_map(max_zone, empty_zones, visible_zones, search_zones)
+    return y_kernelmap
+
+
+def get_t_kernelmap(kernelmap, imagepath, imagename):
+
+
 
 '''
 ds = load_refdataset('refDS_label.h5')
@@ -187,6 +201,8 @@ end = time.time() - start
 print(len(visible_zones) == (WIDTH * HEIGHT))
 print(f'Time spent: {end}s.')
 '''
+
+
 def initialization(modelpath, visiblepath, WIDTH, HEIGHT):
     models = os.listdir(modelpath)
     models.sort()
@@ -241,7 +257,7 @@ def initialization(modelpath, visiblepath, WIDTH, HEIGHT):
     return y_map, empty_zones, visible_zones
 
 
-def findzone(search_zones, visible_zones, width):
+def find_maxzone(search_zones, visible_zones, width):
     max_value = 0
     max_zone = ''
     max_neighbor = {}
@@ -313,29 +329,57 @@ def update_map(max_zone, empty_zones, visible_zones, search_zones):
     search_zones.remove(max_zone)
 
 
-def get_startp(HEIGHT, WIDTH):
+def get_startp(height, width, y_map, models, imagepath):
     sp1 = np.random.randint(0, 4)
     if sp1 == 0:
-        w = np.random.randint(0, WIDTH)
+        w = np.random.randint(0, width)
         h = sp1
     elif sp1 == 2:
-        w = np.random.randint(0, WIDTH)
-        h = HEIGHT - 1
+        w = np.random.randint(0, width)
+        h = height - 1
     elif sp1 == 1:
-        h = np.random.randint(0, HEIGHT)
-        w = WIDTH - 1
+        h = np.random.randint(0, height)
+        w = width - 1
     else:
-        h = np.random.randint(0, HEIGHT)
+        h = np.random.randint(0, height)
         w = 0
-    return w, h
+    prename = imagename + '_' + w + '_' + h
+    for zone in os.listdir(imagepath):
+        if (zone == prename + '_0.jpg') or (zone == prename + '_1.jpg'):
+            img = cv2.imread(imagepath + zone)
+            img = cv2.resize(img, (108, 108))
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            img = img.astype('float') / 255.0
+            img = img_to_array(img)
+            img = np.expand_dims(img, axis=0)
+            label = np.zeros(9)
+            for key in models:
+                pred = models[key].predict(img)[0][key]
+                label[key - 1] = pred
+            idx = h * WIDTH + w
+            y_map[idx] = label
+    return h * width + w
 
 
-def avail_nextstep(zone_idx):
+def avail_nextstep(zone_idx, kernelmap, width, y_map):
+    neighbors = []
+    neighbors.append(zone_idx - 1)
+    neighbors.append(zone_idx + 1)
+    neighbors.append(zone_idx - width)
+    neighbors.append(zone_idx + width)
+    for i in neighbors:
+        if (i in kernelmap) and (y_map[i][4] != 0):
+            pass
+        else:
+            neighbors.remove(i)
+    return neighbors
 
 
-
-def get_nextstep(zone_idx):
-
+def get_nextstep(zone_idx, kernelmap, width, y_map):
+    avails = avail_nextstep(zone_idx, kernelmap, width, y_map)
+    r = np.random.randint(0, len(avails))
+    nextstep = avails[r]
+    return nextstep
 
 
 def is_edge(zone_idx, HEIGHT, WIDTH):
@@ -346,6 +390,30 @@ def is_edge(zone_idx, HEIGHT, WIDTH):
     return False
 
 
-sp_w, sp_h = get_startp(HEIGHT, WIDTH)
-print(sp_w, sp_h)
+# Load the models and the reference dataset file
+ds = load_refdataset(refdspath)
+models = load_models(modelpath)
+
+# Initialize a empty yield map of the whole field
+y_map = init_ymap(WIDTH, HEIGHT)
+
+# Choose a start point and store the predictions in the y_map
+start_point = get_startp(HEIGHT, WIDTH, y_map, models, imagepath)
+
+# Generate a kernelmap based on the start point
+kernelmap = get_kernelmap(EDGE_LEN, start_point, HEIGHT, WIDTH)
+
+# Build a yield kernelmap
+y_kernelmap = build_y_kernelmap(kernelmap, y_map, ds, WIDTH)
+t_kernelmap = get_t_kernelmap(kernelmap, imagepath, imagename)
+pred_map = []
+true_map = []
+pred_map.append(list(y_kernelmap[:, 4]))
+# Find a random next step to go and go into this path finding while loop
+nextstep = get_nextstep(start_point, kernelmap, WIDTH, y_map)
+kernelmap = get_kernelmap(EDGE_LEN, nextstep, HEIGHT, WIDTH)
+y_kernelmap = build_y_kernelmap(kernelmap, y_map, ds, WIDTH)
+pred_map.append(list(y_kernelmap[:, 4]))
+while
+
 
