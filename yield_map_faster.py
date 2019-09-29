@@ -28,7 +28,7 @@ def init_ymap(width, height):
 
 # compare the predicted map we got with the ground truth.
 # 1 for good class, and -1 for bad
-def show_acc(pred_map, true_map):
+def show_acc(pred_map, true_map, count):
     l = len(true_map)
     gag = 0 # predict a good one as good, similar below
     bab = 0
@@ -54,10 +54,16 @@ def show_acc(pred_map, true_map):
     precision_b = str(round(bab * 100 / (bab + gab), 4))
     recall_g = str(round(gag * 100 / (gag + gab), 4))
     precision_g = str(round(gag * 100 / (gag + bag), 4))
-    print(f'Accuracy:  {acc}%')
-    print(f'Class:  Precision:  Recall:')
-    print(f'Good      {precision_g}%    {recall_g}%')
-    print(f'Bad       {precision_b}%    {recall_b}%')
+    filename = str(count) + '.txt'
+    f = open(filename, 'w+')
+    f.write(f'Accuracy:  {acc}%\n')
+    f.write(f'Class:  Precision:  Recall:\n')
+    f.write(f'Good      {precision_g}%    {recall_g}%\n')
+    f.write(f'Bad       {precision_b}%    {recall_b}%\n')
+    f.close()
+    count += 1
+    print(f'Accuracy:  {count, acc}%')
+    return count
 
 
 def get_truemap(all_path, model, width, height):
@@ -143,10 +149,11 @@ def load_refdataset(filepath):
 def init_y_kernelmap(kernelmap, y_map):
     h, w = np.shape(kernelmap)
     y_kernelmap = np.zeros((h * w, 9))
-    for i in kernelmap:
-        if y_map[i][4] != 0:
-            row, col = np.where(kernelmap == i)
-            y_kernelmap[int(row) * w + int(col)] = y_map[i]
+    for i in range(h):
+        for j in range(w):
+            idx = kernelmap[i, j]
+            if y_map[idx][4] != 0:
+                y_kernelmap[i * w + j] = y_map[idx]
     return y_kernelmap
 
 
@@ -177,9 +184,18 @@ def build_y_kernelmap(kernelmap, y_map, ds, width):
     return y_kernelmap
 
 
-def get_t_kernelmap(kernelmap, imagepath, imagename):
-
-
+def get_t_kernelmap(kernelmap, imagepath, width):
+    row, col = kernelmap.shape
+    t_kernelmap = []
+    for i in range(row):
+        for j in range(col):
+            h = kernelmap[i, j] // width
+            w = kernelmap[i, j] % width
+            for img in os.listdir(imagepath):
+                name = img.split('_')
+                if (int(name[1]) == w) and (int(name[2]) == h):
+                    t_kernelmap.append(name[-5])
+    return t_kernelmap
 
 '''
 ds = load_refdataset('refDS_label.h5')
@@ -343,7 +359,7 @@ def get_startp(height, width, y_map, models, imagepath):
     else:
         h = np.random.randint(0, height)
         w = 0
-    prename = imagename + '_' + w + '_' + h
+    prename = imagename + '_' + str(w) + '_' + str(h)
     for zone in os.listdir(imagepath):
         if (zone == prename + '_0.jpg') or (zone == prename + '_1.jpg'):
             img = cv2.imread(imagepath + zone)
@@ -354,9 +370,9 @@ def get_startp(height, width, y_map, models, imagepath):
             img = np.expand_dims(img, axis=0)
             label = np.zeros(9)
             for key in models:
-                pred = models[key].predict(img)[0][key]
+                pred = models[key].predict(img)[0][1]
                 label[key - 1] = pred
-            idx = h * WIDTH + w
+            idx = h * width + w
             y_map[idx] = label
     return h * width + w
 
@@ -375,10 +391,26 @@ def avail_nextstep(zone_idx, kernelmap, width, y_map):
     return neighbors
 
 
-def get_nextstep(zone_idx, kernelmap, width, y_map):
+def get_nextstep(zone_idx, kernelmap, width, y_map, models, imagepath):
     avails = avail_nextstep(zone_idx, kernelmap, width, y_map)
     r = np.random.randint(0, len(avails))
     nextstep = avails[r]
+    h = avails[r] // width
+    w = avails[r] % width
+    for zone in os.listdir(imagepath):
+        name = zone.split('_')
+        if (name[1] == w) and (name[2] == h):
+            img = cv2.imread(imagepath + zone)
+            img = cv2.resize(img, (108, 108))
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            img = img.astype('float') / 255.0
+            img = img_to_array(img)
+            img = np.expand_dims(img, axis=0)
+            label = np.zeros(9)
+            for key in models:
+                pred = models[key].predict(img)[0][1]
+                label[key - 1] = pred
+            y_map[avails[r]] = label
     return nextstep
 
 
@@ -390,6 +422,7 @@ def is_edge(zone_idx, HEIGHT, WIDTH):
     return False
 
 
+count = 0
 # Load the models and the reference dataset file
 ds = load_refdataset(refdspath)
 models = load_models(modelpath)
@@ -405,15 +438,35 @@ kernelmap = get_kernelmap(EDGE_LEN, start_point, HEIGHT, WIDTH)
 
 # Build a yield kernelmap
 y_kernelmap = build_y_kernelmap(kernelmap, y_map, ds, WIDTH)
-t_kernelmap = get_t_kernelmap(kernelmap, imagepath, imagename)
+t_kernelmap = get_t_kernelmap(kernelmap, imagepath, WIDTH)
+count = show_acc(list(y_kernelmap[:, 4]), t_kernelmap, count)
 pred_map = []
 true_map = []
 pred_map.append(list(y_kernelmap[:, 4]))
+true_map.append(t_kernelmap)
 # Find a random next step to go and go into this path finding while loop
-nextstep = get_nextstep(start_point, kernelmap, WIDTH, y_map)
+nextstep = get_nextstep(start_point, kernelmap, WIDTH, y_map, models, imagepath)
 kernelmap = get_kernelmap(EDGE_LEN, nextstep, HEIGHT, WIDTH)
 y_kernelmap = build_y_kernelmap(kernelmap, y_map, ds, WIDTH)
+t_kernelmap = get_t_kernelmap(kernelmap, imagepath, WIDTH)
+count = show_acc(list(y_kernelmap[:, 4]), t_kernelmap, count)
 pred_map.append(list(y_kernelmap[:, 4]))
-while
+true_map.append(t_kernelmap)
 
+while not (is_edge(nextstep, HEIGHT, WIDTH)):
+    nextstep = get_nextstep(nextstep, kernelmap, WIDTH, y_map, models, imagepath)
+    kernelmap = get_kernelmap(EDGE_LEN, nextstep, HEIGHT, WIDTH)
+    y_kernelmap = build_y_kernelmap(kernelmap, y_map, ds, WIDTH)
+    t_kernelmap = get_t_kernelmap(kernelmap, imagepath, WIDTH)
+    count = show_acc(list(y_kernelmap[:, 4]), t_kernelmap, count)
+    pred_map.append(list(y_kernelmap[:, 4]))
+    true_map.append(t_kernelmap)
 
+pmap = np.array(pred_map)
+tmap = np.array(true_map)
+np.savetxt('pred_kernelmap', pmap)
+np.savetxt('true_kernelmap', tmap)
+np.savetxt('yieldmap', y_map)
+y_predmap = get_kernelmap(45, 0, HEIGHT, WIDTH)
+t_predmap = get_t_kernelmap(y_predmap, imagepath, WIDTH)
+count = show_acc(list(y_map[:, 4]), t_predmap, count)

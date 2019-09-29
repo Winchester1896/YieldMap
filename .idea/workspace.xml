@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="c118ddd6-1a41-479c-a606-a6c24ad24839" name="Default Changelist" comment="">
+    <list default="true" id="c118ddd6-1a41-479c-a606-a6c24ad24839" name="Default Changelist" comment="Still updates">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/yield_map_faster.py" beforeDir="false" afterPath="$PROJECT_DIR$/yield_map_faster.py" afterDir="false" />
     </list>
@@ -58,7 +58,7 @@
       <workItem from="1569465760436" duration="20936000" />
       <workItem from="1569544271376" duration="1856000" />
       <workItem from="1569678142388" duration="3085000" />
-      <workItem from="1569690756615" duration="13561000" />
+      <workItem from="1569690756615" duration="21403000" />
     </task>
     <task id="LOCAL-00001" summary="small updates">
       <created>1569697838201</created>
@@ -67,7 +67,14 @@
       <option name="project" value="LOCAL" />
       <updated>1569697838201</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Still updates">
+      <created>1569711459770</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1569711459770</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -88,6 +95,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="small updates" />
-    <option name="LAST_COMMIT_MESSAGE" value="small updates" />
+    <MESSAGE value="Still updates" />
+    <option name="LAST_COMMIT_MESSAGE" value="Still updates" />
   </component>
 </project>
