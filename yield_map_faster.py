@@ -15,6 +15,7 @@ visiblepath = '164030_visible//'
 imagename = '164030'
 imagepath = '164030_all/'
 refdspath = 'refDS_label.h5'
+flightpath = 'flightpath.txt'
 # all_list = os.listdir(all_path)
 # cover = len(visible_list)
 # coverrate = round(cover * 100 / len(all_list), 4)
@@ -38,22 +39,35 @@ def show_acc(pred_map, true_map, count):
         print('ERROR: Maps size dont match.')
         exit()
     for i in range(l):
-        if true_map[i] == -1:
-            if pred_map[i] == -1:
-                bab += 1
-            else:
-                bag += 1
-        else:
-            if pred_map[i] == 1:
-                gag += 1
-            else:
+        if true_map[i] == 0:
+            if pred_map[i] >= 0.5:
                 gab += 1
+            else:
+                gag += 1
+        else:
+            if pred_map[i] < 0.5:
+                bag += 1
+            else:
+                bab += 1
     sum = bab + gag + gab + bag
+    print(f'bab: {bab}, gag: {gag}, gab: {gab}, bag: {bag}, sum: {sum}, all: {l}')
     acc = str(round((bab + gag) * 100 / sum, 4))
-    recall_b = str(round(bab * 100 / (bab + bag), 4))
-    precision_b = str(round(bab * 100 / (bab + gab), 4))
-    recall_g = str(round(gag * 100 / (gag + gab), 4))
-    precision_g = str(round(gag * 100 / (gag + bag), 4))
+    if bab + bag == 0:
+        recall_b = 0
+    else:
+        recall_b = str(round(bab * 100 / (bab + bag), 4))
+    if bab + gab == 0:
+        precision_b = 0
+    else:
+        precision_b = str(round(bab * 100 / (bab + gab), 4))
+    if gag + gab == 0:
+        recall_g = 0
+    else:
+        recall_g = str(round(gag * 100 / (gag + gab), 4))
+    if gag + bag == 0:
+        precision_g = 0
+    else:
+        precision_g = str(round(gag * 100 / (gag + bag), 4))
     filename = str(count) + '.txt'
     f = open(filename, 'w+')
     f.write(f'Accuracy:  {acc}%\n')
@@ -109,8 +123,8 @@ def get_kernelmap(edge_len, zone_idx, height, width):
     if edge_len % 2 != 1:
         print('Length of the kernel size must be odd.')
         exit()
-    w = zone_idx % height
-    h = zone_idx // height
+    w = zone_idx % width
+    h = zone_idx // width
     sp_w = w - edge_len // 2
     sp_h = h - edge_len // 2
     ep_w = w + edge_len // 2
@@ -122,8 +136,8 @@ def get_kernelmap(edge_len, zone_idx, height, width):
     if ep_w > width:
         ep_w = width
     if ep_h > height:
-        ep_h = height
-    while sp_h != ep_h:
+        ep_h = height - 1
+    while sp_h <= ep_h:
         temp = np.arange(sp_h * width + sp_w, sp_h * width + ep_w)
         kernel_map.append(list(temp))
         sp_h += 1
@@ -154,6 +168,8 @@ def init_y_kernelmap(kernelmap, y_map):
             idx = kernelmap[i, j]
             if y_map[idx][4] != 0:
                 y_kernelmap[i * w + j] = y_map[idx]
+                # print(y_map[idx])
+                # print(y_kernelmap[i * w + j])
     return y_kernelmap
 
 
@@ -162,12 +178,18 @@ def build_y_kernelmap(kernelmap, y_map, ds, width):
     empty_zones = []
     h, w = np.shape(kernelmap)
     y_kernelmap = init_y_kernelmap(kernelmap, y_map)
-    for i in kernelmap:
-        if y_map[i][4] != 0:
-            visible_zones.append(i)
-    for i in kernelmap:
-        if i not in visible_zones:
-            empty_zones.append(i)
+    for i in range(h):
+        for j in range(w):
+            idx = kernelmap[i, j]
+            if y_map[idx][4] != 0:
+                visible_zones.append(idx)
+            else:
+                empty_zones.append(idx)
+    f = open(flightpath, 'a+')
+    for i in visible_zones:
+        f.write(str(i) + ',')
+    f.write('\n')
+    f.close()
     search_zones = init_searchzones(empty_zones, visible_zones)
     while len(search_zones) != 0:
         max_value, max_zone, max_neighbor = find_maxzone(search_zones, visible_zones, width)
@@ -194,8 +216,9 @@ def get_t_kernelmap(kernelmap, imagepath, width):
             for img in os.listdir(imagepath):
                 name = img.split('_')
                 if (int(name[1]) == w) and (int(name[2]) == h):
-                    t_kernelmap.append(name[-5])
+                    t_kernelmap.append(int(img[-5]))
     return t_kernelmap
+
 
 '''
 ds = load_refdataset('refDS_label.h5')
@@ -374,6 +397,7 @@ def get_startp(height, width, y_map, models, imagepath):
                 label[key - 1] = pred
             idx = h * width + w
             y_map[idx] = label
+    print(h * width + w)
     return h * width + w
 
 
@@ -384,7 +408,7 @@ def avail_nextstep(zone_idx, kernelmap, width, y_map):
     neighbors.append(zone_idx - width)
     neighbors.append(zone_idx + width)
     for i in neighbors:
-        if (i in kernelmap) and (y_map[i][4] != 0):
+        if (i in kernelmap) and (y_map[i][4] == 0):
             pass
         else:
             neighbors.remove(i)
@@ -399,7 +423,7 @@ def get_nextstep(zone_idx, kernelmap, width, y_map, models, imagepath):
     w = avails[r] % width
     for zone in os.listdir(imagepath):
         name = zone.split('_')
-        if (name[1] == w) and (name[2] == h):
+        if (int(name[1]) == w) and (int(name[2]) == h):
             img = cv2.imread(imagepath + zone)
             img = cv2.resize(img, (108, 108))
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -407,17 +431,19 @@ def get_nextstep(zone_idx, kernelmap, width, y_map, models, imagepath):
             img = img_to_array(img)
             img = np.expand_dims(img, axis=0)
             label = np.zeros(9)
-            for key in models:
-                pred = models[key].predict(img)[0][1]
-                label[key - 1] = pred
+            for i in range(9):
+                pred = models[i + 1].predict(img)[0][1]
+                label[i] = pred
             y_map[avails[r]] = label
+            print('right')
+    print(nextstep)
     return nextstep
 
 
-def is_edge(zone_idx, HEIGHT, WIDTH):
-    w = zone_idx % HEIGHT
-    h = zone_idx // HEIGHT
-    if (w in [0, WIDTH - 1]) or (h in [0, HEIGHT - 1]):
+def is_edge(zone_idx, height, width):
+    w = zone_idx % width
+    h = zone_idx // width
+    if (w in [0, width - 1]) or (h in [0, height - 1]):
         return True
     return False
 
@@ -432,41 +458,57 @@ y_map = init_ymap(WIDTH, HEIGHT)
 
 # Choose a start point and store the predictions in the y_map
 start_point = get_startp(HEIGHT, WIDTH, y_map, models, imagepath)
-
+print(y_map[start_point])
 # Generate a kernelmap based on the start point
 kernelmap = get_kernelmap(EDGE_LEN, start_point, HEIGHT, WIDTH)
 
 # Build a yield kernelmap
 y_kernelmap = build_y_kernelmap(kernelmap, y_map, ds, WIDTH)
+
 t_kernelmap = get_t_kernelmap(kernelmap, imagepath, WIDTH)
-count = show_acc(list(y_kernelmap[:, 4]), t_kernelmap, count)
 pred_map = []
 true_map = []
 pred_map.append(list(y_kernelmap[:, 4]))
 true_map.append(t_kernelmap)
+count = show_acc(list(y_kernelmap[:, 4]), t_kernelmap, count)
 # Find a random next step to go and go into this path finding while loop
 nextstep = get_nextstep(start_point, kernelmap, WIDTH, y_map, models, imagepath)
+
 kernelmap = get_kernelmap(EDGE_LEN, nextstep, HEIGHT, WIDTH)
 y_kernelmap = build_y_kernelmap(kernelmap, y_map, ds, WIDTH)
 t_kernelmap = get_t_kernelmap(kernelmap, imagepath, WIDTH)
-count = show_acc(list(y_kernelmap[:, 4]), t_kernelmap, count)
 pred_map.append(list(y_kernelmap[:, 4]))
 true_map.append(t_kernelmap)
-
+count = show_acc(list(y_kernelmap[:, 4]), t_kernelmap, count)
 while not (is_edge(nextstep, HEIGHT, WIDTH)):
     nextstep = get_nextstep(nextstep, kernelmap, WIDTH, y_map, models, imagepath)
     kernelmap = get_kernelmap(EDGE_LEN, nextstep, HEIGHT, WIDTH)
     y_kernelmap = build_y_kernelmap(kernelmap, y_map, ds, WIDTH)
     t_kernelmap = get_t_kernelmap(kernelmap, imagepath, WIDTH)
-    count = show_acc(list(y_kernelmap[:, 4]), t_kernelmap, count)
     pred_map.append(list(y_kernelmap[:, 4]))
     true_map.append(t_kernelmap)
+    count = show_acc(list(y_kernelmap[:, 4]), t_kernelmap, count)
 
-pmap = np.array(pred_map)
-tmap = np.array(true_map)
-np.savetxt('pred_kernelmap', pmap)
-np.savetxt('true_kernelmap', tmap)
-np.savetxt('yieldmap', y_map)
-y_predmap = get_kernelmap(45, 0, HEIGHT, WIDTH)
+print('finished')
+f = open('pred_map.txt', 'w+')
+for i in range(len(pred_map)):
+    for j in range(len(pred_map[i])):
+        f.write(str(pred_map[i][j]) + ',')
+    f.write('\n')
+f.close()
+f = open('true_map.txt', 'w+')
+for i in range(len(true_map)):
+    for j in range(len(true_map[i])):
+        f.write(str(true_map[i][j]) + ',')
+    f.write('\n')
+f.close()
+yieldmap = list(y_map)
+f = open('yield_map.txt', 'w+')
+for i in range(len(yieldmap)):
+    for j in range(len(yieldmap[i])):
+        f.write(str(yieldmap[i][j]) + ',')
+    f.write('\n')
+f.close()
+y_predmap = get_kernelmap(101, 0, HEIGHT, WIDTH)
 t_predmap = get_t_kernelmap(y_predmap, imagepath, WIDTH)
 count = show_acc(list(y_map[:, 4]), t_predmap, count)
