@@ -3,7 +3,10 @@
   <component name="ChangeListManager">
     <list default="true" id="c118ddd6-1a41-479c-a606-a6c24ad24839" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/prediction_smaller.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/111/164030_0_2_0.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/refDS_label.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/result.h5" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/yield_map_faster.py" beforeDir="false" afterPath="$PROJECT_DIR$/yield_map_faster.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -59,7 +62,9 @@
       <workItem from="1569465760436" duration="20936000" />
       <workItem from="1569544271376" duration="1856000" />
       <workItem from="1569678142388" duration="3085000" />
-      <workItem from="1569690756615" duration="41273000" />
+      <workItem from="1569690756615" duration="42828000" />
+      <workItem from="1569851434647" duration="5848000" />
+      <workItem from="1569872103829" duration="16145000" />
     </task>
     <task id="LOCAL-00001" summary="small updates">
       <created>1569697838201</created>
@@ -82,7 +87,14 @@
       <option name="project" value="LOCAL" />
       <updated>1569771919448</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="Final version...maybe">
+      <created>1569808685175</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1569808685175</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -105,6 +117,7 @@
     <MESSAGE value="small updates" />
     <MESSAGE value="Still updates" />
     <MESSAGE value="Finished" />
-    <option name="LAST_COMMIT_MESSAGE" value="Finished" />
+    <MESSAGE value="Final version...maybe" />
+    <option name="LAST_COMMIT_MESSAGE" value="Final version...maybe" />
   </component>
 </project>

@@ -19,9 +19,9 @@ def get_kernelmap(edge_len, zone_idx, height, width):
     if ep_w > width:
         ep_w = width
     if ep_h > height:
-        ep_h = height - 1
+        ep_h = height
     print(w, h, sp_w, sp_h, ep_w, ep_h)
-    while sp_h <= ep_h:
+    while sp_h < ep_h:
         temp = np.arange(sp_h * width + sp_w, sp_h * width + ep_w)
         kernel_map.append(list(temp))
         sp_h += 1
@@ -43,9 +43,11 @@ def avail_nextstep(zone_idx, kernelmap, width):
     return neighbors
 
 
-point = get_kernelmap(15, 1342, 32, 42)
-# print(np.where(point == 1343))
-print(point)
-nei = avail_nextstep(1342, point, 42)
-print(nei)
-# np.savetxt('point', point)
+# a = 31
+# point = get_kernelmap(15, a, 32, 42)
+# print(point)
+# print(type(point))
+# print(31 in point)
+# nei = avail_nextstep(a, point, 42)
+# print(nei)
+print(1)
