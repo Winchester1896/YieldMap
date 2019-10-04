@@ -1,0 +1,4 @@
+Accuracy:  85.8333%
+Class:  Precision:  Recall:
+Good      98.0769%    87.1795%
+Bad       6.25%    33.3333%
