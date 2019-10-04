@@ -221,6 +221,9 @@ def build_y_kernelmap(kernelmap):
     #     f.write(str(i) + ',')
     # f.write('\n')
     # f.close()
+    vis = []
+    for zone in visible_zones:
+        vis.append(zone)
     search_zones = init_searchzones(empty_zones, visible_zones)
     while len(search_zones) != 0:
         max_value, max_zone, max_neighbor = find_maxzone(search_zones, visible_zones)
@@ -234,7 +237,7 @@ def build_y_kernelmap(kernelmap):
         row, col = np.where(kernelmap == max_zone)
         y_kernelmap[int(row) * w + int(col)] = ds[min_idx]
         update_map(max_zone, empty_zones, visible_zones, search_zones)
-    return y_kernelmap, visible_zones
+    return y_kernelmap, vis
 
 
 def normalize_y_kernelmap(y_kernelmap, kernelmap, raw_kernelmap):
