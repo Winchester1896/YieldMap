@@ -8,7 +8,6 @@ import numpy as np
 import argparse
 import time
 import cv2
-
 import h5py
 
 ap = argparse.ArgumentParser()
@@ -503,13 +502,13 @@ def get_startp():
     all_neigh.append(startp)
 
     for i in range(len(option)):
-            if i not in neighbors:
+            if option[i] not in neighbors:
                 all_neigh.append(option[i])
                 all_neigh.append(-1)
             else:
-                all_neigh.append(options[i])
-                h = i // WIDTH
-                w = i % WIDTH
+                all_neigh.append(option[i])
+                h = option[i] // WIDTH
+                w = option[i] % WIDTH
                 for zone in os.listdir(imagepath):
                     name = zone.split('_')
                     if (int(name[1]) == w) and (int(name[2]) == h):
@@ -617,13 +616,13 @@ def get_neighbors_truth(zone_idx, neighbors):
         all_neigh.append(-1)
     else:
         for i in range(len(option)):
-            if i not in neighbors:
+            if option[i] not in neighbors:
                 all_neigh.append(option[i])
                 all_neigh.append(-1)
             else:
-                all_neigh.append(options[i])
-                h = i // WIDTH
-                w = i % WIDTH
+                all_neigh.append(option[i])
+                h = option[i] // WIDTH
+                w = option[i] % WIDTH
                 for zone in os.listdir(imagepath):
                     name = zone.split('_')
                     if (int(name[1]) == w) and (int(name[2]) == h):
@@ -662,38 +661,59 @@ true_map = []
 neighbors_truth = []
 flightpaths = []
 for loop in range(0, 2):
-    #try:
-        print(loop)
+    # try:
+    print(loop)
 
-        count = 0
-        flightzones = []
+    count = 0
+    flightzones = []
 
-        # Initialize a empty yield map of the whole field
-        y_map = init_ymap(WIDTH, HEIGHT)
+    # Initialize a empty yield map of the whole field
+    y_map = init_ymap(WIDTH, HEIGHT)
 
-        # Choose a start point and store the predictions in the y_map
-        start_point, neigh_true = get_startp()
+    # Choose a start point and store the predictions in the y_map
+    start_point, neigh_true = get_startp()
+    neighbors_truth.append(neigh_true)
+
+    # Generate a kernelmap based on the start point
+    kernelmap, raw_kernelmap = get_kernelmap(start_point)
+
+    # Build a yield kernelmap
+    y_kernelmap, visible_zones = build_y_kernelmap(kernelmap)
+    flightpaths.append(visible_zones)
+    normalized_y_kernelmap = normalize_y_kernelmap(y_kernelmap, kernelmap, raw_kernelmap)
+
+    t_kernelmap = get_t_kernelmap(kernelmap)
+    normalized_t_kernelmap = normalize_t_kernelmap(t_kernelmap, kernelmap, raw_kernelmap)
+
+    print(np.shape(normalized_y_kernelmap), np.shape(normalized_t_kernelmap))
+
+    pred_map.append(normalized_y_kernelmap)
+    true_map.append(normalized_t_kernelmap)
+    # show_acc(list(y_kernelmap[:, 4]), t_kernelmap)
+
+    # Find a random next step to go and go into this path finding while loop
+    nextstep, neigh_true = get_nextstep(start_point, kernelmap)
+    neighbors_truth.append(neigh_true)
+
+    kernelmap, raw_kernelmap = get_kernelmap(nextstep)
+
+    y_kernelmap, visible_zones = build_y_kernelmap(kernelmap)
+    flightpaths.append(visible_zones)
+    normalized_y_kernelmap = normalize_y_kernelmap(y_kernelmap, kernelmap, raw_kernelmap)
+
+    t_kernelmap = get_t_kernelmap(kernelmap)
+    normalized_t_kernelmap = normalize_t_kernelmap(t_kernelmap, kernelmap, raw_kernelmap)
+
+    print(np.shape(normalized_y_kernelmap), np.shape(normalized_t_kernelmap))
+
+    pred_map.append(normalized_y_kernelmap)
+    true_map.append(normalized_t_kernelmap)
+    # show_acc(list(y_kernelmap[:, 4]), t_kernelmap)
+    # while not (is_edge(nextstep, HEIGHT, WIDTH)):
+    while count <= STEPS and len(avail_nextstep(nextstep, kernelmap)) != 0:
+        nextstep, neigh_true = get_nextstep(nextstep, kernelmap)
         neighbors_truth.append(neigh_true)
-
-        # Generate a kernelmap based on the start point
-        kernelmap, raw_kernelmap = get_kernelmap(start_point)
-
-        # Build a yield kernelmap
-        y_kernelmap, visible_zones = build_y_kernelmap(kernelmap)
-        flightpaths.append(visible_zones)
-        normalized_y_kernelmap = normalize_y_kernelmap(y_kernelmap, kernelmap, raw_kernelmap)
-
-        t_kernelmap = get_t_kernelmap(kernelmap)
-        normalized_t_kernelmap = normalize_t_kernelmap(t_kernelmap, kernelmap, raw_kernelmap)
-
-        pred_map.append(normalized_y_kernelmap)
-        true_map.append(normalized_t_kernelmap)
-        # show_acc(list(y_kernelmap[:, 4]), t_kernelmap)
-
-        # Find a random next step to go and go into this path finding while loop
-        nextstep, neigh_true = get_nextstep(start_point, kernelmap)
-        neighbors_truth.append(neigh_true)
-
+        print(neigh_true)
         kernelmap, raw_kernelmap = get_kernelmap(nextstep)
 
         y_kernelmap, visible_zones = build_y_kernelmap(kernelmap)
@@ -703,27 +723,12 @@ for loop in range(0, 2):
         t_kernelmap = get_t_kernelmap(kernelmap)
         normalized_t_kernelmap = normalize_t_kernelmap(t_kernelmap, kernelmap, raw_kernelmap)
 
+        print(np.shape(normalized_y_kernelmap), np.shape(normalized_t_kernelmap))
+
         pred_map.append(normalized_y_kernelmap)
         true_map.append(normalized_t_kernelmap)
         # show_acc(list(y_kernelmap[:, 4]), t_kernelmap)
-        # while not (is_edge(nextstep, HEIGHT, WIDTH)):
-        while count <= STEPS and len(avail_nextstep(nextstep, kernelmap)) != 0:
-            nextstep, neigh_true = get_nextstep(nextstep, kernelmap)
-            neighbors_truth.append(neigh_true)
-            print(neigh_true)
-            kernelmap, raw_kernelmap = get_kernelmap(nextstep)
-
-            y_kernelmap, visible_zones = build_y_kernelmap(kernelmap)
-            flightpaths.append(visible_zones)
-            normalized_y_kernelmap = normalize_y_kernelmap(y_kernelmap, kernelmap, raw_kernelmap)
-
-            t_kernelmap = get_t_kernelmap(kernelmap)
-            normalized_t_kernelmap = normalize_t_kernelmap(t_kernelmap, kernelmap, raw_kernelmap)
-
-            pred_map.append(normalized_y_kernelmap)
-            true_map.append(normalized_t_kernelmap)
-            # show_acc(list(y_kernelmap[:, 4]), t_kernelmap)
-            count += 1
+        count += 1
 
         # f = open('pred_map.txt', 'a+')
         # for i in range(len(pred_map)):
@@ -745,11 +750,11 @@ for loop in range(0, 2):
         #     f.write('\n')
         # f.close()
 
-    #except Exception as e:
+    # except Exception as e:
     #    print(e)
 
-#print(len(pred_map))
-#for i in range(len(pred_map)):
+# print(len(pred_map))
+# for i in range(len(pred_map)):
 #    print(len(pred_map[i]))
 
 pred_map = np.array(pred_map)
