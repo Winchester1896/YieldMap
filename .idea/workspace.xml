@@ -3,11 +3,8 @@
   <component name="ChangeListManager">
     <list default="true" id="c118ddd6-1a41-479c-a606-a6c24ad24839" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/111/164030_0_2_0.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/refDS_label.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/result.h5" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/yield_map_faster.py" beforeDir="false" afterPath="$PROJECT_DIR$/yield_map_faster.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/yield_map_loop.py" beforeDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -64,7 +61,10 @@
       <workItem from="1569678142388" duration="3085000" />
       <workItem from="1569690756615" duration="42828000" />
       <workItem from="1569851434647" duration="5848000" />
-      <workItem from="1569872103829" duration="16145000" />
+      <workItem from="1569872103829" duration="17349000" />
+      <workItem from="1569942734787" duration="4875000" />
+      <workItem from="1569982117685" duration="15969000" />
+      <workItem from="1570117590409" duration="6467000" />
     </task>
     <task id="LOCAL-00001" summary="small updates">
       <created>1569697838201</created>
