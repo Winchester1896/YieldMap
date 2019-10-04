@@ -154,8 +154,8 @@ def get_kernelmap(zone_idx):
     sp_h = h - EDGE_LEN // 2
     ep_w = w + EDGE_LEN // 2
     ep_h = h + EDGE_LEN // 2
-    while sp_h < ep_h:
-        temp = np.arange(sp_h * WIDTH + sp_w, sp_h * WIDTH + ep_w)
+    while sp_h <= ep_h:
+        temp = np.arange(sp_h * WIDTH + sp_w, sp_h * WIDTH + ep_w + 1)
         raw_kernelmap.append(list(temp))
         sp_h += 1
     sp_h = h - EDGE_LEN // 2
@@ -163,18 +163,17 @@ def get_kernelmap(zone_idx):
         sp_w = 0
     if sp_h < 0:
         sp_h = 0
-    if ep_w > WIDTH:
-        ep_w = WIDTH
-    if ep_h > HEIGHT:
-        ep_h = HEIGHT
-    while sp_h < ep_h:
-        temp = np.arange(sp_h * WIDTH + sp_w, sp_h * WIDTH + ep_w)
+    if ep_w >= WIDTH:
+        ep_w = WIDTH - 1
+    if ep_h >= HEIGHT:
+        ep_h = HEIGHT - 1
+    while sp_h <= ep_h:
+        temp = np.arange(sp_h * WIDTH + sp_w, sp_h * WIDTH + ep_w + 1)
         kernel_map.append(list(temp))
         sp_h += 1
     kernel_map = np.array(kernel_map)
     raw_kernelmap = np.array(raw_kernelmap)
     return kernel_map, raw_kernelmap
-
 
 def load_models():
     model_dir = os.listdir(modelpath)
