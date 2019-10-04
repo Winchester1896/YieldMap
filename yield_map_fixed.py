@@ -432,7 +432,7 @@ def update_map(max_zone, empty_zones, visible_zones, search_zones):
 
 def get_startp():
     sp1 = np.random.randint(0, 4)
-    neigh_true = []
+    all_neigh = []
     if sp1 == 0:
         w = np.random.randint(0, WIDTH)
         h = sp1
@@ -498,20 +498,22 @@ def get_startp():
             neighbors.append(h * WIDTH + w - WIDTH)
         else:
             pass
-    neigh_true.append(startp)
-    for idx in range(len(neighbors)):
-        neigh_true.append(neighbors[idx])
-        h = idx // WIDTH
-        w = idx % WIDTH
-        for zone in os.listdir(imagepath):
-            name = zone.split('_')
-            if (int(name[1]) == w) and (int(name[2]) == h):
-                neigh_true.append(int(zone[-5]))
-    for i in option:
-        if i not in neighbors:
-            neigh_true.append(i)
-            neigh_true.append(-1)
-    return startp, neigh_true
+    all_neigh.append(startp)
+
+    for i in range(len(option)):
+            if i not in neighbors:
+                all_neigh.append(option[i])
+                all_neigh.append(-1)
+            else:
+                all_neigh.append(options[i])
+                h = i // WIDTH
+                w = i % WIDTH
+                for zone in os.listdir(imagepath):
+                    name = zone.split('_')
+                    if (int(name[1]) == w) and (int(name[2]) == h):
+                        all_neigh.append(int(zone[-5]))
+
+    return startp, all_neigh
 
 
 def avail_nextstep(zone_idx, kernelmap):
@@ -612,6 +614,20 @@ def get_neighbors_truth(zone_idx, neighbors):
         all_neigh.append(option[3])
         all_neigh.append(-1)
     else:
+        for i in range(len(option)):
+            if i not in neighbors:
+                all_neigh.append(option[i])
+                all_neigh.append(-1)
+            else:
+                all_neigh.append(options[i])
+                h = i // WIDTH
+                w = i % WIDTH
+                for zone in os.listdir(imagepath):
+                    name = zone.split('_')
+                    if (int(name[1]) == w) and (int(name[2]) == h):
+                        all_neigh.append(int(zone[-5]))
+
+        '''
         for idx in range(l):
             all_neigh.append(neighbors[idx])
             h = idx // WIDTH
@@ -624,6 +640,7 @@ def get_neighbors_truth(zone_idx, neighbors):
             if i not in neighbors:
                 all_neigh.append(i)
                 all_neigh.append(-1)
+        '''
     return all_neigh
 
 
@@ -643,7 +660,7 @@ true_map = []
 neighbors_truth = []
 flightpaths = []
 for loop in range(0, 2):
-    try:
+    #try:
         print(loop)
 
         count = 0
@@ -691,7 +708,7 @@ for loop in range(0, 2):
         while count <= STEPS and len(avail_nextstep(nextstep, kernelmap)) != 0:
             nextstep, neigh_true = get_nextstep(nextstep, kernelmap)
             neighbors_truth.append(neigh_true)
-
+            print(neigh_true)
             kernelmap, raw_kernelmap = get_kernelmap(nextstep)
 
             y_kernelmap, visible_zones = build_y_kernelmap(kernelmap)
@@ -726,8 +743,8 @@ for loop in range(0, 2):
         #     f.write('\n')
         # f.close()
 
-    except:
-        pass
+    #except Exception as e:
+    #    print(e)
 
 #print(len(pred_map))
 #for i in range(len(pred_map)):
