@@ -19,6 +19,8 @@ ap.add_argument("-f", "--fpath", type=str, required=True,
                 help="flightpath txt file")
 ap.add_argument("-n", "--ntruth", type=str, required=True,
                 help="neighborzone_truth txt file")
+ap.add_argument("-e", "--edgelen", type=int, required=True,
+                help="edge length")
 args = vars(ap.parse_args())
 
 
@@ -26,9 +28,9 @@ args = vars(ap.parse_args())
 WIDTH = 42
 HEIGHT = 32
 
-EDGE_LEN = 19  # the size of the kernel size. Right now it's 15 * 15
+EDGE_LEN = args["edgelen"]  # the size of the kernel size. Right now it's 15 * 15
 
-STEPS = 50      # steps for the whole flight path. The python file will stop after these steps plus 2,
+STEPS = 250      # steps for the whole flight path. The python file will stop after these steps plus 2,
 # or until there's no available next step to choose.
 
 modelpath = 'models/'    # the folder containing the NN models
@@ -660,7 +662,8 @@ pred_map = []
 true_map = []
 neighbors_truth = []
 flightpaths = []
-for loop in range(0, 2):
+start = time.time()
+for loop in range(0, 100):
     # try:
     print(loop)
 
@@ -685,7 +688,7 @@ for loop in range(0, 2):
     t_kernelmap = get_t_kernelmap(kernelmap)
     normalized_t_kernelmap = normalize_t_kernelmap(t_kernelmap, kernelmap, raw_kernelmap)
 
-    print(np.shape(normalized_y_kernelmap), np.shape(normalized_t_kernelmap))
+    # print(np.shape(normalized_y_kernelmap), np.shape(normalized_t_kernelmap))
 
     pred_map.append(normalized_y_kernelmap)
     true_map.append(normalized_t_kernelmap)
@@ -704,7 +707,7 @@ for loop in range(0, 2):
     t_kernelmap = get_t_kernelmap(kernelmap)
     normalized_t_kernelmap = normalize_t_kernelmap(t_kernelmap, kernelmap, raw_kernelmap)
 
-    print(np.shape(normalized_y_kernelmap), np.shape(normalized_t_kernelmap))
+    # print(np.shape(normalized_y_kernelmap), np.shape(normalized_t_kernelmap))
 
     pred_map.append(normalized_y_kernelmap)
     true_map.append(normalized_t_kernelmap)
@@ -713,7 +716,7 @@ for loop in range(0, 2):
     while count <= STEPS and len(avail_nextstep(nextstep, kernelmap)) != 0:
         nextstep, neigh_true = get_nextstep(nextstep, kernelmap)
         neighbors_truth.append(neigh_true)
-        print(neigh_true)
+        # print(neigh_true)
         kernelmap, raw_kernelmap = get_kernelmap(nextstep)
 
         y_kernelmap, visible_zones = build_y_kernelmap(kernelmap)
@@ -723,7 +726,7 @@ for loop in range(0, 2):
         t_kernelmap = get_t_kernelmap(kernelmap)
         normalized_t_kernelmap = normalize_t_kernelmap(t_kernelmap, kernelmap, raw_kernelmap)
 
-        print(np.shape(normalized_y_kernelmap), np.shape(normalized_t_kernelmap))
+        # print(np.shape(normalized_y_kernelmap), np.shape(normalized_t_kernelmap))
 
         pred_map.append(normalized_y_kernelmap)
         true_map.append(normalized_t_kernelmap)
@@ -756,13 +759,24 @@ for loop in range(0, 2):
 # print(len(pred_map))
 # for i in range(len(pred_map)):
 #    print(len(pred_map[i]))
-
+end = time.time() - start
+print(f'Time: {end // 60}mins.')
 pred_map = np.array(pred_map)
 true_map = np.array(true_map)
 neighbors_truth = np.array(neighbors_truth)
-np.savetxt(args["pmap"], pred_map)
-np.savetxt(args["tmap"], true_map)
-np.savetxt(args["ntruth"], neighbors_truth)
+
+f = open(args["pmap"], 'ab')
+np.savetxt(f, pred_map)
+f.close()
+
+f = open(args["tmap"], 'ab')
+np.savetxt(f, true_map)
+f.close()
+
+f = open(args["ntruth"], 'ab')
+np.savetxt(f, neighbors_truth)
+f.close()
+
 f = open(args["fpath"], 'a+')
 for i in range(len(flightpaths)):
     for j in range(len(flightpaths[i])):
