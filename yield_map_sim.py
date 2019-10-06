@@ -28,7 +28,7 @@ args = vars(ap.parse_args())
 WIDTH = 50
 HEIGHT = 33
 
-EDGE_LEN = 19  # the size of the kernel size. Right now it's 15 * 15
+EDGE_LEN = 15  # the size of the kernel size. Right now it's 15 * 15
 
 STEPS = 50   # steps for the whole flight path. The python file will stop after these steps plus 2,
 # or until there's no available next step to choose.
@@ -164,6 +164,20 @@ def get_predmap(y_map, width, height):
     return pred_map
 
 
+def get_wholefield():
+    fieldmap = []
+    sp_w = 0
+    sp_h = 0
+    ep_w = WIDTH - 1
+    ep_h = HEIGHT - 1
+    while sp_h <= ep_h:
+        temp = np.arange(sp_h * WIDTH + sp_w, sp_h * WIDTH + ep_w + 1)
+        fieldmap.append(list(temp))
+        sp_h += 1
+    fieldmap = np.array(fieldmap)
+    return fieldmap
+
+
 # Size of the kernel be decided by edge_len(must be odd), position in the map be decided by zone_idx.
 def get_kernelmap(zone_idx):
     kernel_map = []
@@ -189,7 +203,7 @@ def get_kernelmap(zone_idx):
     if ep_w >= WIDTH:
         ep_w = WIDTH-1
     if ep_h >= HEIGHT:
-        ep_h = HEIGHT -1
+        ep_h = HEIGHT - 1
     while sp_h <= ep_h:
         temp = np.arange(sp_h * WIDTH + sp_w, sp_h * WIDTH + ep_w + 1)
         kernel_map.append(list(temp))
@@ -657,6 +671,11 @@ for i in range(1):
             true_map.append(t_kernelmap)
             show_acc(list(y_kernelmap[:, 4]), t_kernelmap)
             count += 1
+
+        wholefield = get_wholefield()
+        y_fieldmap = build_y_kernelmap(wholefield)
+        show_acc(y_fieldmap[:, 4], GTMap)
+
 
         print('finished')
         f = open('pred_map.txt', 'a+')
