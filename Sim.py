@@ -51,7 +51,7 @@ neighborzone_truth_path = 'neighborzone_truth.txt'  # the ground truth data for 
 # coverrate = round(cover * 100 / len(all_list), 4)
 # print(f'[INFO] Coverage rate: {coverrate}%.')
 
-testImg = 'test1.JPG'
+testImg = 'test2.JPG'
 
 def readKNN():
     #ds = []
@@ -63,7 +63,7 @@ def readKNN():
 
     return np.genfromtxt(args['knndataset'], delimiter=',')
 
-
+'''
 def findGEx(im, ge, min_ge, max_ge):
     imWidth, imHeight, chan = im.shape
     good = 0
@@ -110,7 +110,53 @@ def load_map():
     plt.imshow(GExMap)
     print(np.shape(GExMap))
     return GExMap, IMGMap
+'''
+def findGEx(im, avg_ge, min_gi, max_gi):
+    imWidth, imHeight, chan = im.shape
 
+    #GI = 0
+    #total = 0
+    #speed = 8
+
+    good = 0
+    bad = 0
+    B,R,G = cv2.split(im)
+
+    ori_gi = 2*G-R-B
+    new_gi = (ori_gi - min_gi) / (max_gi - min_gi)
+    gi = np.mean(new_gi)
+
+    if(gi > avg_ge*.8):
+        return 0
+    else:
+        return 1
+
+def load_map():
+    img = cv2.imread(testImg)
+    shp = img.shape
+
+    h = int(shp[0])
+    w = int(shp[0])
+    b,r,g = cv2.split(img)
+    ori_gi = 2*g-r-b
+    min_gi = np.min(ori_gi)
+    max_gi = np.max(ori_gi)
+    new_gi = (ori_gi - min_gi) / (max_gi - min_gi)
+    gi = np.mean(new_gi)
+
+    height = int(shp[0]/108)
+    width = int(shp[1]/108)
+    GExMap = np.zeros((width, height))
+    IMGMap = np.zeros((width, height, 108, 108, 3))
+
+    for i in range(width):
+        for j in range(height):
+            crop = img[j*108:(j+1)*108, i*108:(i+1)*108]
+            GEx = findGEx(crop, gi, min_gi, max_gi)
+            GExMap[i,j] = GEx
+            IMGMap[i,j] = crop
+
+    return GExMap, IMGMap
 
 def init_ymap(width, height):
     y_map = np.zeros((width * height, 9))
